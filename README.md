@@ -1,4 +1,4 @@
-# RokoT_OIT
+# RokoT_OITI
 ![RokoT](./src/SWQPIVC0Hec.jpg)
 
 * [Task 1](./src/task1.md)
