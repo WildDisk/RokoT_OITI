@@ -60,5 +60,5 @@ git commit -m "Task 1 - Знакомство с Git"
 
 ## Пуш
 ```bash
-git push -u origin 
+git push -u origin develop
 ```
