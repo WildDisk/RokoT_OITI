@@ -1,3 +1,18 @@
+# Task 1 - Знакомство с Git
+
+## Задача
+
+Первое задание - знакомство с git.
+
+Разобраться как работает. Завести на общедоступном (ну или приватном - для нас с тобой, милый мой) проект, где будут лежать последующие наработки.
+
+В первой репе описать базовые команды для работы с гитом из консоли. Формат описания - md.
+Прислать мне merge request (или аналог) на review.
+
+___
+
+## Создание репы
+
 ### …or create a new repository on the command line
 ```bash
 echo "# RokoT_OITI" >> README.md
@@ -14,4 +29,24 @@ git push -u origin main
 git remote add origin https://github.com/WildDisk/RokoT_OITI.git
 git branch -M main
 git push -u origin main
+```
+
+## Создаём и меняем используемую ветку репозитория
+```bash
+git checkout -b develop
+```
+
+## Индексирование контента
+```bash
+git add --all
+```
+
+## Коммит
+```bash
+git commit -m "Task 1 - Знакомство с Git"
+```
+
+## Пуш
+```bash
+git push -u origin 
 ```
