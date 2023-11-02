@@ -41,6 +41,18 @@ git checkout -b develop
 git add --all
 ```
 
+## Проверка регистрации изменений
+```bash
+git status
+```
+```
+Текущая ветка: develop
+Изменения, которые будут включены в коммит:
+  (используйте «git restore --staged <файл>...», чтобы убрать из индекса)
+        изменено:      ../README.md
+        изменено:      task1.md
+```
+
 ## Коммит
 ```bash
 git commit -m "Task 1 - Знакомство с Git"
