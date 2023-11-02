@@ -62,3 +62,27 @@ git commit -m "Task 1 - Знакомство с Git"
 ```bash
 git push origin develop
 ```
+
+---
+
+## Конфликты
+
+### Обновляемся
+```bash
+git pull --rebase
+```
+
+### Мердж
+```bash
+git merge main
+```
+По сути принимаем изменение из корня ибо данный вариант был более валидный
+
+### Mergetool
+```bash
+git mergetool
+```
+Используем `meld` из-за того что Auto-merge не сработал, разрешаем конфликт руками
+
+### Коммит и Пуш
+Тут по классике `git commit && git push`
