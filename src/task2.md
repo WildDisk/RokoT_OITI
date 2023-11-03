@@ -34,4 +34,5 @@ localhost                  : ok=2    changed=0    unreachable=0    failed=0    s
 ```
 * В конфе есть опечатка, сообщение прилетает как `Henlo`
 
+---
 [К предыдущей](./task1.md) | [Вначало](#задача-2---ansible--docker) | [К следующей]()
