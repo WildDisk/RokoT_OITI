@@ -1,8 +1,8 @@
 # РокоТ IT
-![RokoT](./src/SWQPIVC0Hec.jpg)
+![RokoT](src/img/SWQPIVC0Hec.jpg)
 
 ---
 
-* ### [Task 1](./src/task1.md)
+* ### [Задача 1](./src/task1.md)
 
-* ### [Task 2](./src/task2.md)
+* ### [Задача 2](./src/task2.md)

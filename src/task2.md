@@ -1,12 +1,12 @@
-# Task2
-
-## Ansible & Docker
+# Задача 2 - Ansible & Docker
 
 ### Задача
 
-![preparing](./task2.jpg)
+![preparing](img/task2.jpg)
 
 ---
+
+* [Ansible](#ansible)
 
 ## Ansible
 
@@ -33,3 +33,5 @@ PLAY RECAP *********************************************************************
 localhost                  : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
 ```
 * В конфе есть опечатка, сообщение прилетает как `Henlo`
+
+[К предыдущей](./task1.md) | [Вначало](#задача-2---ansible--docker) | [К следующей]()
