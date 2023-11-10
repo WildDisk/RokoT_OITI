@@ -12,10 +12,15 @@
 3) Когда задолбался писать команды вручную в окне ВМ - ssh и с чем его едят.
 4) Как устанавливают ПО в Linux - make install, пакетные менеджеры.
 5) Почему:
-   а) в Debian поставились два веб сервера, но заработал только один.
-   б) в Centos поставились два веб сервера, ни один не заработал.
+   
+   а) в Debian поставились два веб-сервера, но заработал только один.
+   
+   б) в Centos поставились два веб-сервера, ни один не заработал.
+   
    в) Как вы это узнали? Что им мешает? Как сделать, чтоб они запускались при старте системы?
+   
    г) в Debian дефолтная страница веб сервера открывается, а в Centos нет.
+   
    д) Про сети нужно что-то знать и понимать.
 6) Скриншоты или видео, где показана работа системы.
 
@@ -26,313 +31,231 @@
 
 ---
 
+1. [Виртуальная машина](#virtual-machine)
+   1. [Установка](#установка)
+   2. [Настройка](#настройка)
+2. [Дистрибутивы Linux](#дистрибутивы)
+   1. [Где взять](#образы)
+   2. [Отличия](#отличия)
+3. [SSH](#ssh)
+   1. [Настройка ВМ](#настройка-вм)
+   2. [Настройка ОС](#настройка-ос)
+   3. [SSH ключи](#ssh-ключи-для-быстрого-доступа)
+4. [Установка ПО](#установка-по)
+   1. [Установка из сорцов](#установка-из-исходников)
+   2. [Установка из пакетов](#менеджеры-пакетов)
+5. [Root](#root)
+6. [systemd](#подсистема-инициализации-и-управления-службами-systemd)
+   1. [Команды](#основные-команды-для-взаимодействия)
+#
+
 ## Virtual Machine
 
 ### Установка
 
 В плане VM решил взять VirtualBox. Бесплатный, простой, понятный.
 
-## Образы
+Так-как у меня Ubuntu устанавливал из пакета.
+```shell
+sudo apt install virtualbox
+```
+
+### Настройка
+
+Настройка кнопками и ползунками.
+
+В момент создания ВМ'ки указываем тип операционной системы как Linux и версию в соответствии с веткой задания, либо 
+Debian, либо RedHat, так как CentOS операционная система именно этого семейства.
+
+Далее указываем количество оперативной памяти и дискового пространства. Виртуальная машина создана. Далее в настройках 
+можем указать количество процессоров, является ли диск твердотельным и примонтировать образ, который будет загружен.
+
+## Дистрибутивы
+
+### Образы
+
+Образы дистрибутивов взяты с официальных сайтов. Они бесплатны, так-как не Enterprise. Да и на ентерпрайсе вроде платят
+не за систему, а за поддержку.
+
 ***Debian:*** https://www.debian.org/distrib/netinst/debian-12.2.0-amd64-netinst.iso
 
 ***CentOS:*** http://mirrors.datahouse.ru/centos/7.9.2009/isos/x86_64/CentOS-7-x86_64-Minimal-2009.iso
 
-## Настройка OS на виртуалке
+> Ссылка на `CentOS` взята с http://isoredirect.centos.org/centos/7/isos/x86_64/, однако здесь предоставляется список 
+> зеркал. Какой из них брать? ХЗ! В теории лучше тот который территориально ближе, но какой из них ближе Я без понятия, 
+> по этому был взят первый по списку!
 
-### Debian 
-Ничего особенного кроме установки гостевых дополнений для VirtualBox. Но там ничего необычного. Смонтировал образ, 
-выполнил программу инсталяции.
+### Отличия
+1) Концептуальных отличий не знаю, кроме того что 2 разных семейства. Debian это Debian, а CentOS это RedHat.
+2) Есть разница в устанавливаемых пакетах. Пакеты Debian имеют расширение `.deb`, а CentOS `.rpm`.
+3) Отличаются менеджеры пакетов. Debian используют программу `apt`, CentOS `yum`.
 
-### CentOS
+В целом прям такие яркие отличия на этом и заканчиваются, кроме того что с 21го года RedHat прекратила поддержку CentOS,
+а сам проект вообще закрыт.
 
-#### Установка графической оболочки ***опционально***
+## SSH
+SSH (Secure Shell) - Сетевой протокол позволяющий управлять операционной системой на подобии какого-нибудь Telnet, 
+только при это ещё и шифрует трафик.
 
-<details>
-   <summary>Как делать</summary>
-   <p>
-      Взято из этой <a href="https://serverspace.ru/support/help/installing-the-gnome-gui-on-centos-7/">статьи</a>
-   
-Сперва обновляемся
+### Настройка ВМ
+Перед настройкой SSH у ОС, необходимо пробросить порты виртуальной машины у VirtualBox. 
+
+Настройки -> Сеть -> Дополнительно -> Проброс портов
+
+Имя любое, протокол выбираем как TCP, адрес хоста указывать не обязательно, адрес гостя тоже, всё равно коннект будет 
+по хостовой тачке. Порт хоста, это порт по которому мы будем подключаться к удалённой тачке, а порт гостя это 
+стандартный ssh порт.
+
+| Имя    | Протокол | Адрес хоста | Порт хоста | Адрес гостя | Порт гостя |
+|--------|----------|-------------|------------|-------------|------------|
+| Debian | TCP      | -           | 2222       | -           | 22         |
+| CentOS | TCP      | -           | 2220       | -           | 22         |
+
+Такую настройку нужно сделать у каждой машины по отдельности.
+
+### Настройка ОС
+При установке Debian будет предложено предустановить ssh-сервер, однако можно поставить и самому.
 ```shell
-yum update
+sudo apt install openssh-server
 ```
-Забавный факт. В отличие от debian дистрибутивов, cent не требует `upgrade`. Либо Я этот момент успешно забыл в `RedHat`
-дистрибутивах, что не удивительно ибо более 10 лет прошло с момента использования `OpenSUSE`, то ли это какой-то прикол 
-именно `CentOS`. ¯\_(ツ)_/¯
-
-Устанавливаем библиотеки связанные с `GNOME`
+Проверяем статус, что служба запущена и работает.
 ```shell
-sudo yum -y groups install "GNOME Desktop"
+sudo systemctl status ssh
 ```
-
-Указываем что GNOME графическая среда по умолчанию
 ```shell
-echo "exec gnome-session" >> ~/.xinitrc
+● ssh.service - OpenBSD Secure Shell server
+     Loaded: loaded (/lib/systemd/system/ssh.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2023-11-10 21:26:34 +10; 1h 31min ago
+       Docs: man:sshd(8)
+             man:sshd_config(5)
+    Process: 565 ExecStartPre=/usr/sbin/sshd -t (code=exited, status=0/SUCCESS)
+   Main PID: 582 (sshd)
+      Tasks: 1 (limit: 4623)
+     Memory: 7.2M
+        CPU: 750ms
+     CGroup: /system.slice/ssh.service
+             └─582 "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
 ```
-
-Запускаем нашего икса
+Стоит обратить внимание на пункт `Loaded`. Если стоит параметр `enabled`, значит сервис добавлен в автозагрузку, если 
+нет, это можно также сделать с помощью систему управления службами.
 ```shell
-startx
+sudo systemctl enabled ssh
 ```
-
-Добавляем икса в автозапуск
+Для CentOS всё аналогично, только демон там зовётся как `sshd.service`.
 ```shell
-systemctl set-default graphical.target
-```
-   </p>
-</details>
-
-#### Установка гостевых дополнений для VirtualBox
-
-В отличие от `Debian`, здесь нужно сперва установить набор GNU компиляторов, дабы сбилдить модули ядра.
-```shell
-yum install -y gcc make perl kernel-devel
-```
-В противном случае установка может не выполнится, что у меня приводило к отказу в монтировании общедоступной директории 
-с VirtualBox. За пример брал эту [статью](https://www.pc4xp.ru/art/detail.php?ID=55).
-
-## Настройка сервера
-
-Пошел в сторону написания shell скрипта для ускорения настройки.
-
-Получаем имя операционной системы для дальнейшего выбора варианта установки и настройки
-```shell
-os_name=`hostnamectl | grep "Operating System:" | awk '{print $3}'`
-```
-
-Выбор типа установки 
-> Возможно для CentOS нужно получать не только имя, но ещё и версию =\ Но это пока не так важно.
-```shell
-if [[ $os_name = 'Debian' ]]
-then 
-	configureDebian
-elif [[ $os_name = 'CentOS' ]]
-then
-	configureCentOS
-else
-	echo "ERROR: Не задано поведение для вашей системы! $os_name"
-fi
+sudo systemctl status sshd
 ```
 
-Функция установки и настройки
+Теперь можно попробовать подключится. Вызываем ssh с флагом `-p` который отвечает за порт, указываем порт нужной машины
+указанный в настройках. После имя пользователя удалённой тачки и адрес хоста на котором крутятся ВМ. 
+`ssh -p $PORT $USER@$HOST`
 ```shell
 # Debian
-function configureDebian {}
-#CentOS
-function configureCentOS {}
-```
-
-Установка необходимого софта
-> CentOS требует наличия подключенной репы epel-release для установки nginx, a apache это httpd
-```shell
-# Debian
-sudo apt install net-tools curl gedit apache2 nginx
+ssh -p 2222 username@localhost
 # CentOS
-sudo yum install epel-release
-sudo yum -y install net-tools curl gedit httpd nginx
+ssh -p 2220 username@localhost
 ```
 
-Добавляем службы в автозагрузку
-> Примечательно что на Debian добавлять nginx в автозапуск вроде не потребовалось, он и так работал после ребута машины.
-> Но если нужно то ровно так же как и в CentOS.
+Если подключаемся с других устройств, то вместо `localhost` разумеется указываем ip адрес.
+![ssh](./img/ssh.jpg)
+
+### SSH ключи для быстрого доступа
+SSH-ключи необходимы для идентификации пользователя по протоколу SSH, вместо авторизации по паролю.
+
+Для генерации ключа на клиенте используем команду `ssh-keygen`. После ряда вопросов типа куда сохранить, проверочная 
+фраза и т.д. будет создан отпечаток ключа `key fingerprint`. По умолчанию он сохраняется в `~/.ssh/`. В `.ssh` будет 
+создано 2 файла, `id_rsa.pub` являющийся публичным ключом, который будем использовать, а так же `id_rsa`. 
+`~/.ssh/id_rsa` - это закрытый ключ который никому не стоит показывать.
+
+Также при создании ключа можно указать время его жизни, так же число бит ключа и метод шифрования.
+
+После того как ключ был создан, его открытую часть необходимо скопировать на удалённую машину где собираемся 
+авторизовыватся.
+#### Debian
 ```shell
-# Debian
-sudo systemctl enable apache2
-# CentOS
-sudo systemctl enable httpd && sudo systemctl enable nginx
+cat ~/.ssh/id_rsa.pub | ssh username@localhost 'mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys'
 ```
-
-Бэкапим конфиги для апача перед переопределением портов
+#### CentOS
+В целом для CentOS команда аналогичная, за исключением, того что рекурсивно для директории `.ssh` применяется chmod. 
+В противном случае ключ не будет использоваться и попытки авторизации будут приводить к тому что будет запрашиваться 
+пароль.
 ```shell
-# Debian
-sudo cp /etc/apache2/ports.conf /etc/apache2/ports_bkp.conf
-# CentOS
-sudo cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd_bkp.conf
+cat ~/.ssh/id_rsa.pub | ssh username@localhost "mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && chmod -R go= ~/.ssh && cat >> ~/.ssh/authorized_keys"
 ```
 
-Переопределяем порт для апача
-> Почему на CentOS не 82, а 08. Какая-то фигня с определением дефолтных портов. На стэке нашел лишь затронутую в скользь
-> тему, так что в чём суть не понял. Танцы с бубном для открытия 82го не помогли, по этому оставил 08.
+## Установка ПО
+В Linux основных 2 варианта установки программного обеспечения. 
+1. Из сорцов `./configure && make && make install`.
+2. Из пакетов с помощью `dpkg`, `apt-get` или `apt` для Debian систем и `yum` для RH. 
+> Возможно для RH есть ещё что-то как в случае Debian, но тут Я без понятия. 
+
+### Установка из исходников
+В целом тут всё просто. 
+
+`./configure` - по сути осуществляет подготовку исходников перед компиляцией. Ищет заголовки, подключает библиотеки и 
+так далее, после чего создаётся необходимый для сборки файл с именем `Makefile`.
+
+`make` - непосредственно сам процесс компиляции. Читает `Makefile` где описан процесс сборки программы.
+
+`make install` - собственно процесс установки собранной программы. Так-как исполняемые файлы за частую ставятся в 
+директории `/usr/../` то могут потребоваться привелегии суперпользователя ну или сокращённо `root`.
+
+### Менеджеры пакетов
+Использование менеджеров пакетов всегда исполняется с root правами.
+
+То есть или
+```
+$ su - авторизуемся как root
+# apt install {packegname} - для Debian
+# yum install {packegname} - для RH
+```
+или
 ```shell
-# Debian
-sudo sed -i 's/Listen 80/Listen 8082/' /etc/apache2/ports.conf
-# CentOS
-sudo sed -i 's/Listen 80/Listen 8008/' /etc/httpd/conf/httpd.conf
+$ sudo apt install {packegname} - для Debian
+$ sudo yum install {packegname} - для RH 
+```
+где `sudo`(substitute user and do - подменить пользователя и выполнить), это утилита для повышения привелегий до уровня 
+суперпользователя.
+
+## Root
+Может быть так что пользователь не включён в группу `sudo` из-за чего при попытке выполнить команду может приводить к 
+сообщению `$USER is not in the sudoers file`. В Debian по умолчанию так.
+
+Чтобы добавить в пользователя Debian в группу sudo нужно воспользоваться командой `usermod`. Однако так-как в переменной
+`$PATH` отсутствует ссылка на `/usr/sbin`, то выполнение команды приведёт к сообщению о том что команда не найден. По 
+этому для решения данной проблемы используем полный путь до утилиты. Можно конечно и добавить путь в переменную, однако 
+зачем? Всё равно команда используется только один раз. 
+> ВАЖНО: Выполнять команду необходимо из под root, по этому сперва меняем пользователя на root и затем выполняем команду
+```
+$ su
+# /usr/sbin/usermod -aG sudo $USER
 ```
 
-Открываем порты в брандмауэре
-> Актуально только для CentOS
-```shell
-sudo firewall-cmd --permanent --add-service=http
-sudo firewall-cmd --permanent --add-service=https
-sudo firewall-cmd --permanent --add-port=8008/tcp
-sudo firewall-cmd --permanent --add-port=8080/tcp
-sudo firewall-cmd --reload
-```
+## Подсистема инициализации и управления службами systemd
+По сути `systemd` это менеджер управления модулями, которые из себя представляют специально оформленные файлы 
+конфигурации. Каждый модуль отвечает за точки монтирования `.target`, файл подкачки `.swap`, подключаемые устройства 
+`.device`. Чаще всего приходится взаимодействовать с модулем отвечающим за работу сервисов (служб или демонов) 
+`.service`.
 
-Рестартим службу апача
-```shell
-# Debian 
-sudo systemctl restart apache2
-# CentOS
-sudo systemctl restart httpd
-```
+Демон - в `UNIX` подобных системах программа работающая в фоне.
 
-Бэкапим конфиг nginx и меняем его для подключения директорий `sites-available` и `sites-enabled` 
-> Актуально только для CentOS
->> nginx.conf на который замещаем содержит в себе строку `include /etc/nginx/sites-enabled/*` внутри блока `http {}`
-```shell
-sudo mv /etc/nginx/nginx.conf /etc/nginx/nginx_bkp.conf
-sudo cp /media/sf_share/nginx.conf /etc/nginx/nginx.conf
-sudo mkdir /etc/nginx/sites-available/ /etc/nginx/sites-enabled/
-```
-
-Создаём конфиг для проксирования
-> В целом конфиг для обоих ни чем не отличается кроме отсутствия у CentOS директивы `proxy_set_header Host`. При его 
-> наличии respond от сервера прилетает как `400 Bad Request`. Объяснения не нашел, так что сказать не могу.
-```shell
-# Debian
-cat << EOF > /etc/nginx/sites-available/apache
-    server {
-        listen 80;
-        location / {
-            proxy_pass http://localhost:8082;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header Host \$http_host;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-    	}
-    }
-EOF
-# CentOS
-cat << EOF > /etc/nginx/sites-available/apache
-    server {
-        listen 8080;
-        location / {
-            proxy_pass http://localhost:8008;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-    	}
-    }
-EOF
-```
-
-Создаём символьную ссылку на конфиг
-```shell
-sudo ln -s /etc/nginx/sites-available/apache /etc/nginx/sites-enabled/apache
-```
-
-Рестартим nginx
-```shell
-sudo systemctl restart nginx
-```
-
-### Сорцы скрипта
-
-<details><summary>install.sh</summary>
+Для взаимодействия с systemd используется утилита `systemctl`, для которой можно указать интересующую нас команду и 
+далее имя интересующего нас модуля, либо целиком включая тип модуля, либо только имя. 
 
 ```shell
-#!/bin/bash
-# Получаем имя операционной системы
-os_name=`hostnamectl | grep "Operating System:" | awk '{print $3}'`
-
-# Функция конфигурирования apache и nginx
-function configureDebian {
-	sudo apt update && sudo apt upgrage
-	sudo apt install net-tools curl gedit apache2 nginx
-	echo 'Configure Apache'
-	sudo systemctl enable apache2
-	sudo cp /etc/apache2/ports.conf /etc/apache2/ports_bkp.conf
-	sudo sed -i 's/Listen 80/Listen 8082/' /etc/apache2/ports.conf
-	sudo systemctl restart apache2
-	echo 'Apache is ok'
-	echo 'Configure Nginx'
-cat << EOF > /etc/nginx/sites-available/apache
-    server {
-        listen 80;
-        location / {
-            proxy_pass http://localhost:8082;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header Host \$http_host;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-    	}
-    }
-EOF
-	sudo ln -s /etc/nginx/sites-available/apache /etc/nginx/sites-enabled/apache
-	sudo systemctl reload nginx
-	echo 'Nginx is ok'
-}
-
-function configureCentOS {
-	sudo yum update
-	sudo yum install epel-release
-	sudo yum -y install net-tools curl gedit httpd nginx
-	sudo systemctl enable httpd && sudo systemctl enable nginx
-	sudo cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd_bkp.conf
-	sudo sed -i 's/Listen 80/Listen 8008/' /etc/httpd/conf/httpd.conf
-	sudo firewall-cmd --permanent --add-service=http
-	sudo firewall-cmd --permanent --add-service=https
-	sudo firewall-cmd --permanent --add-port=8008/tcp
-	sudo firewall-cmd --permanent --add-port=8080/tcp
-	sudo firewall-cmd --reload
-	sudo systemctl restart httpd
-	sudo mv /etc/nginx/nginx.conf /etc/nginx/nginx_bkp.conf
-	sudo cp /media/sf_share/nginx.conf /etc/nginx/nginx.conf
-	sudo mkdir /etc/nginx/sites-available/ /etc/nginx/sites-enabled/
-cat << EOF > /etc/nginx/sites-available/apache
-    server {
-        listen 8080;
-        location / {
-            proxy_pass http://localhost:8008;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-    	}
-    }
-EOF
-	sudo ln -s /etc/nginx/sites-available/apache /etc/nginx/sites-enabled/apache
-	sudo systemctl restart nginx
-}
-
-# Условие проверки ОС, обновление и конфигурирование серверов
-if [[ $os_name = 'Debian' ]]
-then 
-	configureDebian
-elif [[ $os_name = 'CentOS' ]]
-then
-	configureCentOS
-else
-	echo "ERROR: Не задано поведение для вашей системы! $os_name"
-fi
+systemctl status ssh.service == systemctl status ssh
 ```
 
-</details>
+### Основные команды для взаимодействия
+* status - посмотреть статус выполнения службы
+* start - запустить службу
+* stop - остановить
+* restart - перезапуск stop && start службы
+* reload - перечитать конфигурацию не останавливая работу службы
+* enable - добавить службу в автозапуск
+* disable - удалить службу из автозапуска
 
-## Результат
-
-<details><summary><b>Debian</b></summary>
-
-![Debian](./img/deb.png)
-
-Видим, что для apache был поднят listener на порту `8082`, а nginx слушает `80`.
-
-![curl](./img/curl.png)
-
-</details>
-
-<details><summary><b>CentOS</b></summary>
-
-![CentOS](./img/centos.png)
-
-Видно, что на `80` крутится стартовая страница CentOS которая поддерживается как раз nginx из `/var/www/`, на `8008`
-собственно стартовая страница `Apache`, на которую нас проксирует nginx при обращении к `8080`.
-
-Прикол с `curl`. Видно, что при обращении к порту в качестве статускода он получил `403 Forbidden`, что значит доступ 
-запрещён, хотя страница валидная. Забавно то, что браузер такого ответа не получает.
-
-</details>
+## Apache
 
 ---
 [К предыдущей](../task1/task1.md) | [Вначало](#задача-2---linux) | [К следующей]()
