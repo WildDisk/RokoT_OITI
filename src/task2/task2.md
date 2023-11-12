@@ -47,6 +47,14 @@
 5. [Root](#root)
 6. [systemd](#подсистема-инициализации-и-управления-службами-systemd)
    1. [Команды](#основные-команды-для-взаимодействия)
+7. [Apache](#apache)
+   1. [Установка и настройка в Debian](#установка-и-настройка-apache-в-debian)
+   2. [Установка и настройка в CentOS](#установка-и-настройка-apache-в-centos)
+      1. [Порты](#порты)
+8. [Nginx](#nginx)
+   1. [Установка и настройка в Debian](#установка-и-настройка-nginx-в-debian)
+   2. [Установка и настройка в CentOS](#установка-и-настройка-nginx-в-centos)
+9. [Результаты](#результаты)
 #
 
 ## Virtual Machine
@@ -233,7 +241,7 @@ $ su
 
 ## Подсистема инициализации и управления службами systemd
 По сути `systemd` это менеджер управления модулями, которые из себя представляют специально оформленные файлы 
-конфигурации. Каждый модуль отвечает за точки монтирования `.target`, файл подкачки `.swap`, подключаемые устройства 
+конфигурации. Каждый модуль отвечает за точки монтирования `.mount`, файл подкачки `.swap`, подключаемые устройства 
 `.device`. Чаще всего приходится взаимодействовать с модулем отвечающим за работу сервисов (служб или демонов) 
 `.service`.
 
@@ -255,7 +263,321 @@ systemctl status ssh.service == systemctl status ssh
 * enable - добавить службу в автозапуск
 * disable - удалить службу из автозапуска
 
+Есть также вариант с помощью `service`
+```shell
+sudo service restart ssh
+```
+
 ## Apache
+Как и в случае с [SSH](#ssh), для `apache` сперва стоит открыть порты на ВМ.
+
+### Установка и настройка apache в Debian
+Устанавливаем сам сервер, если есть необходимость добавляем в автозагрузку
+```shell
+sudo apt install apache2
+```
+Открываем listener на нужном порту `Listen $PORT` в `/etc/apache2/ports.conf`. Я для себя взял `18080`. Далее исходя из 
+комментария в файле, меняем `VirtualHost` оператор или создаём свой в директории `/etc/apache2/sites-available`.
+```
+<VirtualHost *:18080>
+        ServerAdmin webmaster@localhost
+        DocumentRoot /var/www/html
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+```
+Сама директории для файлов конфигурации портов, а также `VirtualHost` указываются в основном конфигурационном файле 
+apache `/etc/apache2/apache2.conf`. 
+```
+# Include list of ports to listen on
+Include ports.conf
+...
+# Include the virtual host configurations:
+IncludeOptional sites-enabled/*.conf
+```
+> Примечание
+>> Если обратить внимание, то `VirtualHost` мы делаем в /etc/apache2/sites-available, но в конфиге указан 
+> `../sites-enabled`. Дело в том что в `sites-enabled` создана символическая ссылка на файл из `sites-available`.
+ ```shell
+lrwxrwxrwx 1 root root 41 ноя 11 17:59 /etc/apache2/sites-enabled/my_host.conf -> /etc/apache2/sites-available/my_host.conf
+```
+После того как была создана необходимая конфигурация, делаем `restart` или `reload` сервиса `apache`, дабы изменения 
+применились и вступили в силу.
+
+Убедиться что порт открыт можно с помощью утилиты `netstat`
+```shell
+sudo netstat -tlpn | grep apache2
+```
+Видим что порт открыт и слушается
+```shell
+tcp6       0      0 :::18080                :::*                    LISTEN      4504/apache2
+```
+Далее дабы убедиться что сервер действительно работает, можно отправить стандартный http GET запрос нашему серверу.
+```shell
+curl -v localhost:18080
+```
+Получаем ответ с заголовками страницы, а также её содержимым
+```http request
+*   Trying 127.0.0.1:18080...
+* Connected to localhost (127.0.0.1) port 18080 (#0)
+> GET / HTTP/1.1
+> Host: localhost:18080
+> User-Agent: curl/7.88.1
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< Date: Sun, 12 Nov 2023 13:52:02 GMT
+< Server: Apache/2.4.57 (Debian)
+< Last-Modified: Fri, 10 Nov 2023 16:07:27 GMT
+< ETag: "29cd-609ce844d84dc"
+< Accept-Ranges: bytes
+< Content-Length: 10701
+< Vary: Accept-Encoding
+< Content-Type: text/html
+< 
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+...
+</html>
+
+* Connection #0 to host localhost left intact
+```
+
+Как видно из ответа, получили статускод `200 OK`, что соответствует валидному `http respond`.
+
+Также можно посмотреть `access log` сервера, дабы убедиться что всё в порядке.
+```shell
+sudo less /var/log/apache2/access.log
+```
+В логе также видим что запрос от клиента `curl` был успешен и имеет статускод 200.
+```logcatfilter
+127.0.0.1 - - [12/Nov/2023:23:52:02 +1000] "GET / HTTP/1.1" 200 10956 "-" "curl/7.88.1"
+```
+
+### Установка и настройка apache в CentOS
+По сути всё аналогично [Debian](#установка-и-настройка-apache-в-debian), кроме некоторых деталей. Например `Apache` 
+здесь, это `httpd`.
+```shell
+sudo yum install httpd
+```
+Аналогично добавляем в автозагрузку.
+```shell
+sudo systemctl enable httpd
+```
+Для настройки идём в конфигурационный файл `/etc/httpd/conf/httpd.conf` и уже там указываем `listener` нужного порта или
+файл конфигурации для него, как это было в примере выше, так же подключаем `sites-enabled`, опять же если необходимо. 
+
+Если собираемся использовать `VirtualHost`, стоит подключить `sites-enabled` и создать директорию вместе с 
+`sites-available` в виду их отсутствия.
+```shell
+sudo mkdir /etc/httpd/sites-available/ /etc/httpd/sites-enabled/
+```
+Аналогично тому как это сделано в [Debian](#установка-и-настройка-apache-в-debian), создаём файл с `VirtualHost` и 
+делаем на него символическую ссылку.
+```shell
+sudo ln -s /etc/httpd/sites-available/my_host.conf /etc/httpd/sites-enabled/my_host.conf
+```
+Далее открываем нужный [порт](#порты) и делаем перезапуск сервера. Всё должно работать.
+
+#### Порты
+В CentOS порты необходимо открывать в брандмауэре, в противном случае ничего работать не будет.
+```shell
+sudo firewall-cmd --permanent --add-port=18080/tcp
+sudo firewall-cmd --reload
+```
+Если не использовать порты `80`, `81`, `8008`, `8009`, а какие-либо другие, то тот же `apache` скорее всего даже не 
+поднимется сообщая об ошибке, которую можно будет посмотреть через утилиту `journalctl`.
+```shell
+journalctl -xe
+```
+Здесь можно будет увидеть ошибку о запрете доступа и невозможности сбиндить адрес.
+```logcatfilter
+Permission denied: AH00072: make_sock: could not bind to address 0.0.0.0:18080
+```
+Связано это с `SELinux` - системой принудительного контроля доступа. Есть 2 варианта решения. Отключаем временно или 
+полностью.
+
+***Временно***
+```shell
+sudo setenforce 0
+```
+***Полностью*** - открываем файл конфигурации, находим строку `SELINUX=...` и меняем значение на `disabled`.
+```shell
+sudo vi /etc/selinux/config
+SELINUX=disabled
+```
+После этого можно перезапускать сервис.
+
+## Nginx
+Также сперва открываем порты на ВМ.
+
+### Установка и настройка nginx в Debian
+Устанавливаем и добавляем в автозагрузку.
+```shell
+sudo apt install nginx
+sudo systemctl enable nginx
+```
+Создаём конфиг в `/etc/nginx/sites-available`.
+```
+upstream apache_servers {
+    server localhost:18080;
+    server $REMOTE_HOST:$REMOTE_PORT;
+}
+
+server {
+    listen 8080;
+    
+    location / {
+        proxy_pass http://apache_servers;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+Создаём на него символическую ссылку в `sites-enabled`.
+```shell
+
+```
+Перед перезапуском можем протестировать синтаксис конфига на валидность.
+```shell
+sudo nginx -t
+```
+Если получили такой результат, то всё ок, можно делать рестарт.
+```logcatfilter
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
+Делаем перезапуск сервиса nginx и убеждаемся что listener поднят.
+```shell
+sudo netstat -tlpn | grep nginx
+```
+```logcatfilter
+tcp        0      0 0.0.0.0:8080            0.0.0.0:*               LISTEN      5667/nginx: master
+```
+Дабы убедиться, отправляем 2 запроса. Один на apache, второй nginx
+```shell
+# Apache
+curl -vI localhost:18080
+# Nginx
+curl -vI localhost:8080
+```
+Смотрим результат последних запросов в `access.log` apache и nginx.
+```logcatfilter
+$ sudo tail -2 /var/log/apache2/access.log
+127.0.0.1 - - [13/Nov/2023:01:04:25 +1000] "HEAD / HTTP/1.0" 200 274 "-" "curl/7.88.1"
+127.0.0.1 - - [13/Nov/2023:01:04:37 +1000] "HEAD / HTTP/1.1" 200 255 "-" "curl/7.88.1"
+$ sudo tail -2 /var/log/nginx/access.log
+127.0.0.1 - - [13/Nov/2023:01:04:25 +1000] "HEAD / HTTP/1.1" 200 0 "-" "curl/7.88.1"
+```
+Из логов видим что в `apache` и `nginx` обратились по разу, но в логе apache 2 записи, так-как пришел реквест от nginx, 
+а в nginx 1.
+
+### Установка и настройка nginx в CentOS
+Чтобы произвести установку nginx, сперва необходимо добавить репозиторий `epel-release` из которого можно будет его 
+поставить.
+```shell
+sudo yum install epel-release
+sudo yum install nginx
+```
+Затем аналогично настройке apache подключаем `sites-enabled`. Для этого в блок `http {}` основной конфигурации nginx 
+добавляем директорию.
+```
+http {
+   # Load sites-enabled
+   include sites-enabled/*.conf;
+}
+```
+Создаём нужные директории.
+```shell
+sudo mkdir /etc/nginx/sites-available/ /etc/nginx/sites-enabled/
+```
+Подобно конфиг файлу из [Debian](#установка-и-настройка-nginx-в-debian) создаём такой же в `sites-available`, только с 
+нужными портами, особенно для удалённой тачки и делаем на него символическую ссылку.
+```shell
+sudo ln -s /etc/nginx/sites-available/my_host.conf /etc/nginx/sites-enabled/my_host.conf
+```
+Тестируем синтаксис конфига.
+```shell
+sudo nginx -t
+```
+Открываем [порты](#порты) для nginx и делаем рестарт сервиса, дабы применить все изменения.
+
+## Результаты
+### Debian
+```logcatfilter
+curl -vI localhost:18080 - GET HTTP/1.1 200
+/var/log/apache2/access.log
+127.0.0.1 - - [13/Nov/2023:01:41:01 +1000] "HEAD / HTTP/1.1" 200 255 "-" "curl/7.88.1"
+---
+curl -vI localhost:8080 - GET HTTP/1.1 200
+/var/log/apache2/access.log
+::1 - - [13/Nov/2023:01:42:04 +1000] "HEAD / HTTP/1.0" 200 274 "-" "curl/7.88.1"
+127.0.0.1 - - [13/Nov/2023:01:42:05 +1000] "HEAD / HTTP/1.0" 200 274 "-" "curl/7.88.1"
+/var/log/nginx/access.log
+127.0.0.1 - - [13/Nov/2023:01:46:12 +1000] "HEAD / HTTP/1.1" 200 0 "-" "curl/7.88.1"
+---
+curl -vI $HOST:18082 - GET HTTP/1.1 200
+/var/log/httpd/access_log
+$HOST - - [11/Nov/2023:22:53:51 +1000] "HEAD / HTTP/1.1" 200 - "-" "curl/7.88.1"
+---
+curl -vI $HOST:8082 - GET HTTP/1.1 200
+/var/log/httpd/access_log
+::1 - - [11/Nov/2023:22:58:27 +1000] "HEAD / HTTP/1.0" 200 - "-" "curl/7.88.1"
+/var/log/nginx/access.log
+$HOST - - [11/Nov/2023:22:58:27 +1000] "HEAD / HTTP/1.1" 200 0 "-" "curl/7.88.1" "-"
+```
+
+### CentOS
+```logcatfilter
+curl -vI localhost:18080 - GET HTTP/1.1 200
+/var/log/httpd/access_log
+::1 - - [11/Nov/2023:23:00:50 +1000] "HEAD / HTTP/1.1" 200 - "-" "curl/7.29.0"
+---
+curl -vI localhost:8080 - GET HTTP/1.1 200
+/var/log/httpd/access_log
+127.0.0.1 - - [11/Nov/2023:23:02:06 +1000] "HEAD / HTTP/1.0" 200 - "-" "curl/7.29.0"
+/var/log/nginx/access.log
+127.0.0.1 - - [11/Nov/2023:23:02:22 +1000] "HEAD / HTTP/1.1" 200 0 "-" "curl/7.29.0" "-"
+---
+curl -vI $HOST:18081 - GET HTTP/1.1 200
+/var/log/apache2/access.log
+$HOST - - [13/Nov/2023:01:54:43 +1000] "HEAD / HTTP/1.1" 200 255 "-" "curl/7.29.0"
+---
+curl -vI $HOST:8081 - GET HTTP/1.1 200
+/var/log/apache2/access.log
+127.0.0.1 - - [13/Nov/2023:01:57:21 +1000] "HEAD / HTTP/1.0" 200 274 "-" "curl/7.29.0"
+/var/log/nginx/access.log
+$HOST - - [13/Nov/2023:01:57:21 +1000] "HEAD / HTTP/1.1" 200 0 "-" "curl/7.29.0"
+```
+
+Если попробовать из браузера хоста.
+### Debian
+```logcatfilter
+HTTP GET localhost:18081 - 200
+/var/log/apache2/access.log
+$HOST - - [13/Nov/2023:02:00:23 +1000] "GET / HTTP/1.1" 200 3380 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
+---
+HTTP GET localhost:8081 - 200
+/var/log/apache2/access.log
+::1 - - [13/Nov/2023:02:02:31 +1000] "GET / HTTP/1.0" 200 3343 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
+/var/log/nginx/access.log
+$HOST - - [13/Nov/2023:02:02:31 +1000] "GET / HTTP/1.1" 200 3041 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
+```
+
+### CentOS
+```logcatfilter
+HTTP GET localhost:18082 - 304
+/var/log/httpd/access_log
+$HOST - - [11/Nov/2023:23:15:03 +1000] "GET / HTTP/1.1" 304 219 "http://localhost:18082/" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
+---
+HTTP GET localhost:8082 - 304
+/var/log/httpd/access_log
+127.0.0.1 - - [11/Nov/2023:23:17:47 +1000] "GET / HTTP/1.0" 304 - "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
+/var/log/nginx/access.log
+$HOST - - [11/Nov/2023:23:17:47 +1000] "GET / HTTP/1.1" 304 0 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0" "-"
+```
 
 ---
 [К предыдущей](../task1/task1.md) | [Вначало](#задача-2---linux) | [К следующей]()
