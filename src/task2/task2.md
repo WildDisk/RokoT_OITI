@@ -165,6 +165,7 @@ ssh -p 2220 username@localhost
 ```
 
 Если подключаемся с других устройств, то вместо `localhost` разумеется указываем ip адрес.
+
 ![ssh](./img/ssh.jpg)
 
 ### SSH ключи для быстрого доступа
@@ -420,14 +421,18 @@ sudo systemctl enable nginx
 Создаём конфиг в `/etc/nginx/sites-available`.
 ```
 upstream apache_servers {
-    server localhost:18080;
-    server $REMOTE_HOST:$REMOTE_PORT;
+    server 10.0.2.15:18080;
+    server 10.0.2.2:$PORT;
 }
 
 server {
-    listen 8080;
+    listen 8080 default_server;
+    listen [::]:8080 default_server;
+    root /var/www/html;
+    server_name _;
     
     location / {
+        try_files $uri $uri/ =404;
         proxy_pass http://apache_servers;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -436,9 +441,27 @@ server {
     }
 }
 ```
+
+> В `upstream` указываем ip адреса `10.0.2.15` как локальный адрес и `10.0.2.2` как ip удалённого компьютера. Адреса
+> в данном случае связаны с тем как их создаёт `Virtual Box`. `ifconfig` покажет что ip этого компьютера `10.0.2.15`,
+> однако когда будем смотреть логи nginx на другой машине то увидим что запросы приходят от 10.0.2.2.
+> ```shell
+> # Смотрим ip адрес на одной машине
+> $ sudo ifconfig 
+> enp0s3: ...
+>         inet 10.0.2.15 ...
+> # Отправляем запрос nginx'у удалённой машины
+> $ curl $HOST:$PORT
+> # Проверяем access лог удалённой машины
+> $ sudo less /var/log/nginx/access.log
+> 10.0.2.2 - - [$DATA] "HEAD / HTTP/1.1" 200 0 "-" "curl/7.29.0"
+> ```
+> Как можно заметить несмотря на то, что запрос был отправлен на адрес хоста с открытым портом виртуальной машины, 
+> клиентом всё равно числится `10.0.2.2`, хотя ip на самой виртуальной машине `10.0.2.15`.
+
 Создаём на него символическую ссылку в `sites-enabled`.
 ```shell
-
+sudo ln -s /etc/nginx/sites-available/my_host.conf /etc/nginx/sites-enabled/my_host.conf
 ```
 Перед перезапуском можем протестировать синтаксис конфига на валидность.
 ```shell
