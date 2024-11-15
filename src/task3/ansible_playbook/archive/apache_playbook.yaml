@@ -1,0 +1,73 @@
+- name: Apache, установка и конфигурирование
+  hosts: all
+  vars_files:
+    - vars.yaml
+  become: true
+  gather_facts: true
+  serial: 10
+
+  tasks:
+    - name: Настройка файрвола для CentOS
+      firewalld:
+        service: http
+        permanent: yes
+        state: enabled
+      when: ansible_os_family == 'RedHat'
+
+    - name: Установка Apache
+      package:
+        name: "{{ 'httpd' if ansible_os_family == 'RedHat' else 'apache2' }}"
+        state: present
+
+    - name: Включение и запуск Apache
+      systemd:
+        name: "{{ 'httpd' if ansible_os_family == 'RedHat' else 'apache2' }}"
+        enabled: yes
+        state: started
+
+    - name: Создание дирректории расширений в CentOS
+      file:
+        path: /etc/systemd/system/httpd.service.d
+        state: directory
+      when: ansible_os_family == 'RedHat'
+
+    - name: Создание расширения в CentOS
+      file:
+        path: /etc/systemd/system/httpd.service.d/httpd.conf
+        state: touch
+      when: ansible_os_family == 'RedHat'
+
+    - name: Добавление переменных окружения в CentOS
+      blockinfile:
+        path: /etc/systemd/system/httpd.service.d/httpd.conf
+        block: |
+          [Service]
+          Environment=APACHE_LOG_DIR=/var/log/httpd
+      when: inventory_hostname == 'centos_server'
+
+    - name: Перезапуск демона в CentOS
+      systemd:
+        daemon_reload: true
+      when: inventory_hostname == 'centos_server'
+
+    - name: Смена порта листнера
+      lineinfile:
+        path: "{{ '/etc/httpd/conf/httpd.conf' if ansible_os_family == 'RedHat'
+          else '/etc/apache2/ports.conf' }}"
+        search_string: 'Listen 80'
+        line: 'Listen 8080'
+
+    - name: Копирование конфигурационного файла Apache
+      template:
+        src: templates/apache.conf.j2
+        dest: "{{ '/etc/httpd/conf.d/vhost.conf' if ansible_os_family == 'RedHat' 
+          else '/etc/apache2/sites-available/000-default.conf' }}"
+      notify: Перезапуск Apache
+
+  handlers:
+    - name: Перезапуск Apache
+      systemd:
+#        daemon_reload: "{{ 'true' if inventory_hostname == 'centos_server' }}"
+        name: "{{ 'httpd' if ansible_os_family == 'RedHat' else 'apache2' }}"
+        state: restarted
+

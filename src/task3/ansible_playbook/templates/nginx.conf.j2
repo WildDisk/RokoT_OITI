@@ -1,0 +1,23 @@
+upstream apache_servers {
+    server {{ servers.ubuntu_server.ansible_host }}:{{ httpd_port }};
+    server {{ servers.debian_server.ansible_host }}:{{ httpd_port }};
+    server {{ servers.centos_server.ansible_host }}:{{ httpd_port }};
+}
+server {
+    listen {{ nginx_port }};
+    listen [::]:{{ nginx_port }} default_server;
+    server_name localhost;
+    location / {
+        proxy_pass http://apache_servers;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+    }
+    error_page 404 /404.html;
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+    }
+}

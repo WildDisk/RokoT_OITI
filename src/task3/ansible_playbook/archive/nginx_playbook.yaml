@@ -1,0 +1,67 @@
+- name: Nginx, установка и конфигурирование
+  hosts: all
+  vars_files:
+    - vars.yaml
+  become: true
+  gather_facts: true
+  serial: 10
+
+  tasks:
+#    - name: Настройка файрвола для CentOS
+#      firewalld:
+#        service: http
+#        permanent: yes
+#        state: enabled
+#      when: ansible_os_family == 'RedHat'
+
+    - name: Установка Nginx
+      package:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Включение и запуск Nginx
+      systemd:
+        name: nginx
+        state: stopped
+
+    - name: Включение и запуск Nginx
+      systemd:
+        name: nginx
+        enabled: yes
+        state: started
+
+    - name: Добавление sites-enabled для CentOS
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - /etc/nginx/sites-available
+        - /etc/nginx/sites-enabled
+      when: ansible_os_family == 'RedHat'
+
+    - name: Подключение директорий sites-available
+      blockinfile:
+        path: /etc/nginx/nginx.conf
+        insertafter: 'http {'
+        block: |
+          # Load sites-enabled
+          include sites-enabled/*.conf;
+      when: ansible_os_family == 'RedHat'
+
+#    - name: Создание символической ссылки
+#      shell: ln -s /etc/nginx/sites-available/my_host.conf /etc/nginx/sites-enabled/my_host.conf
+
+    - name: Копирование конфигурационного файла Apache
+      template:
+        src: templates/nginx.conf.j2
+#        dest: "{{ '/etc/nginx/nginx.conf' if ansible_os_family == 'RedHat'
+#          else '/etc/nginx/sites-available/default' }}"
+        dest: /etc/nginx/sites-available/default
+      notify: Перезапуск Nginx
+
+  handlers:
+    - name: Перезапуск Nginx
+      systemd:
+        name: nginx
+        state: restarted
