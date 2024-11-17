@@ -33,7 +33,7 @@
           # Load sites-enabled
           include sites-enabled/*.conf;
 
-    - name: Копирование конфигурационного файла Apache
+    - name: Копирование конфигурационного файла Nginx
       template:
         src: ../../templates/nginx.conf.j2
         dest: /etc/nginx/sites-available/default

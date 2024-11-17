@@ -1,4 +1,4 @@
-- name: Apache, установка и конфигурирование
+- name: Nginx, установка и конфигурирование
   hosts: debian
   vars_files:
     - ../../vars/vars.yaml
@@ -18,7 +18,7 @@
         enabled: yes
         state: started
 
-    - name: Копирование конфигурационного файла Apache
+    - name: Копирование конфигурационного файла Nginx
       template:
         src: ../../templates/nginx.conf.j2
         dest: /etc/nginx/sites-available/default

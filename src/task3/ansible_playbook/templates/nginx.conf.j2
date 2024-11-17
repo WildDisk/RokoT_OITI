@@ -20,4 +20,9 @@ server {
     location = /50x.html {
         root /usr/share/nginx/html;
     }
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg)$ {
+        root {% if ansible_os_family == "Debian" %}{{ apache_root }}
+        {% else %}/usr/share/nginx{% endif %};  # Путь к папке с статическими файлами
+        expires 30d;
+    }
 }

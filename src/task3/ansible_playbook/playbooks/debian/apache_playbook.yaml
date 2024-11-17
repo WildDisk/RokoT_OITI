@@ -27,7 +27,7 @@
     - name: Копирование конфигурационного файла Apache
       template:
         src: ../../templates/apache.conf.j2
-        dest: /etc/apache2/sites-available/000-default.conf'
+        dest: /etc/apache2/sites-available/000-default.conf
       notify: Перезапуск Apache
 
   handlers:

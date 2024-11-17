@@ -8,3 +8,4 @@ servers:
 ansible_user: user_host
 httpd_port: 8080
 nginx_port: 80
+apache_root: /usr/share/apache2
