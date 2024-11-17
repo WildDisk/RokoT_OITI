@@ -1,0 +1,46 @@
+- name: Nginx, установка и конфигурирование
+  hosts: centos
+  vars_files:
+    - ../../vars/vars.yaml
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Установка Nginx
+      yum:
+        name: nginx
+        state: present
+
+    - name: Включение и запуск Nginx
+      systemd_service:
+        name: nginx
+        enabled: yes
+        state: started
+
+    - name: Добавление sites-enabled и sites-available
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - /etc/nginx/sites-available
+        - /etc/nginx/sites-enabled
+
+    - name: Подключение директорий sites-available
+      blockinfile:
+        path: /etc/nginx/nginx.conf
+        insertafter: 'http {'
+        block: |
+          # Load sites-enabled
+          include sites-enabled/*.conf;
+
+    - name: Копирование конфигурационного файла Nginx
+      template:
+        src: ../../templates/nginx.conf.j2
+        dest: /etc/nginx/sites-available/default
+      notify: Перезапуск Nginx
+
+  handlers:
+    - name: Перезапуск Nginx
+      systemd_service:
+        name: nginx
+        state: restarted

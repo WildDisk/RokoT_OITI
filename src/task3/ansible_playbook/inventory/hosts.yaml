@@ -1,0 +1,20 @@
+all:
+  hosts:
+    ubuntu_server:
+      ansible_host: "{{ servers.ubuntu_server.ansible_host }}"
+      ansible_user: "{{ ansible_user }}"
+    debian_server:
+      ansible_host: "{{ servers.debian_server.ansible_host }}"
+      ansible_user: "{{ ansible_user }}"
+    centos_server:
+      ansible_host: "{{ servers.centos_server.ansible_host }}"
+      ansible_user: "{{ ansible_user }}"
+
+  children:
+    debian:
+      hosts:
+        ubuntu_server:
+        debian_server:
+    centos:
+      hosts:
+        centos_server:

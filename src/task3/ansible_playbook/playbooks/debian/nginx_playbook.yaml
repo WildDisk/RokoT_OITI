@@ -1,0 +1,31 @@
+- name: Nginx, установка и конфигурирование
+  hosts: debian
+  vars_files:
+    - ../../vars/vars.yaml
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Установка Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Включение и запуск Nginx
+      systemd_service:
+        name: nginx
+        enabled: yes
+        state: started
+
+    - name: Копирование конфигурационного файла Nginx
+      template:
+        src: ../../templates/nginx.conf.j2
+        dest: /etc/nginx/sites-available/default
+      notify: Перезапуск Nginx
+
+  handlers:
+    - name: Перезапуск Nginx
+      systemd_service:
+        name: nginx
+        state: restarted

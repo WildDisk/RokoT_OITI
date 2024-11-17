@@ -1,0 +1,15 @@
+- name: Настройка файрвола
+  hosts: centos
+  vars_files:
+    - ../../vars/vars.yaml
+  become: true
+
+  tasks:
+    - name: Открываю 80 и 8080 порты
+      firewalld:
+        port: "{{ item }}/tcp"
+        zone: public
+        state: enabled
+      with_items:
+        - 80
+        - 8080

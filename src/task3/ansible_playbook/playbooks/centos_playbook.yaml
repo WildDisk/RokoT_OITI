@@ -1,0 +1,4 @@
+---
+- import_playbook: centos/firewall_playbook.yaml
+- import_playbook: centos/apache_playbook.yaml
+- import_playbook: centos/nginx_playbook.yaml

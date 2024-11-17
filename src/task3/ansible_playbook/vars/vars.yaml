@@ -1,0 +1,11 @@
+servers:
+  ubuntu_server:
+    ansible_host: ubuntu_host
+  debian_server:
+    ansible_host: debian_host
+  centos_server:
+    ansible_host: debian_host
+ansible_user: user_host
+httpd_port: 8080
+nginx_port: 80
+apache_root: /usr/share/apache2

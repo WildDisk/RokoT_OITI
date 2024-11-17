@@ -1,0 +1,3 @@
+---
+- import_playbook: debian/apache_playbook.yaml
+- import_playbook: debian/nginx_playbook.yaml

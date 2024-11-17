@@ -1,0 +1,37 @@
+- name: Apache, установка и конфигурирование
+  hosts: debian
+  vars_files:
+    - ../../vars/vars.yaml
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Установка Apache
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes
+
+    - name: Включение и запуск Apache
+      systemd_service:
+        name: apache2
+        enabled: yes
+        state: started
+
+    - name: Смена порта листнера
+      lineinfile:
+        path: /etc/apache2/ports.conf
+        search_string: 'Listen 80'
+        line: 'Listen 8080'
+
+    - name: Копирование конфигурационного файла Apache
+      template:
+        src: ../../templates/apache.conf.j2
+        dest: /etc/apache2/sites-available/000-default.conf
+      notify: Перезапуск Apache
+
+  handlers:
+    - name: Перезапуск Apache
+      systemd_service:
+        name: apache2
+        state: restarted
